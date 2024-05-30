@@ -58,15 +58,14 @@ async def stream_response(
 
             async with session.post(url=url, headers=combined_headers, json=combined_options) as response:
                 if not response.status == 200:
-                    print(f"HTTP Response: {response.status}")
+                    raise Exception(f"HTTP Response: {response.status}")
 
                 async for raw_line in response.content:
                     if len(raw_line) == 1:
                         continue
                     if raw_line[: len(DEFAULT_RESPONSE_BODY_START_STRING)] != DEFAULT_RESPONSE_BODY_START_STRING:
                         # FIXME: this is brittle code, not sure if another json decoder and skip the "data: " part...
-                        print("Invalid response body starting string, unable to parse response...")
-                        continue
+                        raise Exception("Invalid response body starting string, unable to parse response...")
                     line = raw_line.decode("utf-8")[len(DEFAULT_RESPONSE_BODY_START_STRING) :]
                     yield json.loads(line)
     except Exception as e:
