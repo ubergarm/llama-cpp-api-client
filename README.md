@@ -6,6 +6,15 @@ LLaMA.cpp HTTP Server API Streaming Python Client
 A very thin python library providing async streaming inferencing to
 LLaMA.cpp's HTTP Server via the API endpoints e.g. `/completion`.
 
+## Quick Start
+```bash
+pip install llama-cpp-api-client
+```
+
+```python
+from llama_cpp_api_client import streaming_response
+```
+
 ## Why
 While you could get up and running quickly using something like
 [LiteLLM](https://github.com/BerriAI/litellm) or the official
@@ -40,6 +49,17 @@ python3 -m ensurepip --upgrade
 pip install --upgrade -r requirements.txt
 pip install --upgrade -r requirements-dev.txt
 
+# install package
+pip install .
+pip show -f llama_cpp_api_client
+
+# install from github
+pip install git+https://github.com/ubergarm/llama-cpp-api-client
+
+# testing
+pip install .[dev]
+python3 -m pytest --cov
+
 # upgrade and check versions
 python3 -m venv --upgrade ./venv
 pip freeze
@@ -51,12 +71,14 @@ isort
 ```
 
 ## TODO
-- [ ] initial commit
-- [ ] setup project to use as a library
+- [x] initial commit
+- [x] setup project to use as a library
 - [ ] add usage example with "rich" markdown CLI client.
 - [ ] Support ChatML and Llama-3 prompt formats
 - [ ] Streamng inferencing
 - [ ] Possibly support additional API endpoints...
+- [ ] publish to PyPI
 
 ## References
 * [LLaMA.cpp HTTP Server Docs](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md)
+* [denkiwakame/py-tiny-pkg PyPi Project Template](https://github.com/denkiwakame/py-tiny-pkg)
