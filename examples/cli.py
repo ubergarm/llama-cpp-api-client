@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-import llama_cpp_api_client
+import asyncio
+
+from llama_cpp_api_client import chat_to_prompt, stream_response
 
 
-def main():
-    print("lol")
+async def main():
+    print("TODO: Create a bare bones https://github.com/Textualize/rich based CLI")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
