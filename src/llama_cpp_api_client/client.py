@@ -45,9 +45,7 @@ DEFAULT_RESPONSE_BODY_START_STRING = "data: ".encode("utf-8")
 async def stream_response(
     base_url: str = DEFAULT_BASE_URL, options: dict = {}, headers: dict = {}
 ) -> AsyncGenerator[dict, None]:
-    """
-    Stream LLaMA.cpp HTTP Server API POST /completion response
-    """
+    """Stream LLaMA.cpp HTTP Server API POST /completion responses"""
     try:
         async with ClientSession() as session:
             # override defaults with whatever userland passes
@@ -75,18 +73,86 @@ async def stream_response(
         raise e
 
 
+def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
+    """Accepts a list of dicts in the OpenAI style chat thread and returns string with specified prompt template applied."""
+
+    SUPPORTED_FORMATS = ["ChatML", "Llama-3"]
+
+    # Initialize result as empty string
+    result = ""
+
+    # Make sure the requested format is implemented
+    if format not in SUPPORTED_FORMATS:
+        raise NotImplementedError(f"{format} not in list of supported formats {SUPPORTED_FORMATS}")
+
+    # Check if the chat is not empty or only contains system/user roles
+    if len(chat_thread) == 0:
+        raise ValueError("Chat thread cannot be empty.")
+
+    for index, message in enumerate(chat_thread):
+        # Error check to ensure 'role' and 'content' keys exist in each dict
+        try:
+            role = message["role"]
+            content = message["content"]
+        except KeyError as e:
+            raise ValueError(f"Each chat thread item must contain both 'role' and 'content' keys: {e}")
+
+        # TODO Apply above chat templates or jinja templates and return prompt string.
+        # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
+        # This is super clunky hacky but gets a minimal PoC going quick...
+        match format:
+            # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n",
+            case "ChatML":
+                if role == "system":
+                    result += f"<|im_start|>system\n{content}\n<|im_end|>\n"
+                elif role == "user":
+                    result += f"<|im_start|>user\n{content}\n<|im_end|>\n"
+                    pass
+                elif role == "assistant":
+                    result += f"<|im_start|>assistant\n{content}\n<|im_end|>\n"
+                else:
+                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+            # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
+            case "Llama-3":
+                if role == "system":
+                    result += f"<|start_header_id|>system<|end_header_id|>\n\n{content}<|eot_id|>"
+                elif role == "user":
+                    result += "TODO"
+                    pass
+                elif role == "assistant":
+                    result += "TODO"
+                else:
+                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+
+
+    # chat threads must end by cueing the assistant to begin generation
+    match format:
+        case "ChatML":
+            result += "<|im_start|>assistant\n"
+        case "Llama-3":
+            result += "TODO"
+    return result
+
+
 async def main() -> None:
     system_prompt = "You are a Zen master and mystical poet."
     user_prompt = "Write a simple haiku about llamas."
 
-    # >>> ChatML Prompt Template
-    # "prompt": f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n",
+    chat_thread = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Do you like llamas?"},
+        {"role": "assistant", "content": "Yes I like llamas. What do you want to know about llamas?"},
+        {"role": "user", "content": user_prompt},
+    ]
 
-    # >>> Llama-3-70B Prompt Template
-    # "prompt": f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
+    prompt = chat_to_prompt(chat_thread=chat_thread, format="Llama-3")
+    options = {"prompt": prompt}
+    headers = {"User-Agent": "Mozilla/3.01Gold (X11; I; SunOS 5.5.1 sun4m)"}
 
+    print(prompt)
+    sys.exit(0)
     total = ""
-    async for response in stream_response():
+    async for response in stream_response(base_url="http://localhost:8080", options=options, headers=headers):
         if response.get("stop", False):
             print(f">>> Timings:\n{response["timings"]}")
             print(f">>> Prompt:\n{response["prompt"]}")

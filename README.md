@@ -88,9 +88,9 @@ isort
 ## TODO
 - [x] initial commit
 - [x] setup project to use as a library
-- [ ] add usage example with "rich" markdown CLI client.
+- [x] Streamng inferencing
 - [ ] Support ChatML and Llama-3 prompt formats
-- [ ] Streamng inferencing
+- [ ] add usage example with "rich" markdown CLI client.
 - [ ] Possibly support additional API endpoints...
 - [ ] publish to PyPI
 
