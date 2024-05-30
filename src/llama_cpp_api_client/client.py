@@ -89,7 +89,7 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
     if len(chat_thread) == 0:
         raise ValueError("Chat thread cannot be empty.")
 
-    for index, message in enumerate(chat_thread):
+    for _, message in enumerate(chat_thread):
         # Error check to ensure 'role' and 'content' keys exist in each dict
         try:
             role = message["role"]
@@ -97,40 +97,26 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
         except KeyError as e:
             raise ValueError(f"Each chat thread item must contain both 'role' and 'content' keys: {e}")
 
-        # TODO Apply above chat templates or jinja templates and return prompt string.
-        # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
-        # This is super clunky hacky but gets a minimal PoC going quick...
-        match format:
-            # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n",
-            case "ChatML":
-                if role == "system":
-                    result += f"<|im_start|>system\n{content}\n<|im_end|>\n"
-                elif role == "user":
-                    result += f"<|im_start|>user\n{content}\n<|im_end|>\n"
-                    pass
-                elif role == "assistant":
-                    result += f"<|im_start|>assistant\n{content}\n<|im_end|>\n"
-                else:
-                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
-            # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
-            case "Llama-3":
-                if role == "system":
-                    result += f"<|start_header_id|>system<|end_header_id|>\n\n{content}<|eot_id|>"
-                elif role == "user":
-                    result += "TODO"
-                    pass
-                elif role == "assistant":
-                    result += "TODO"
-                else:
-                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+        if role not in ["system", "user", "assistant"]:
+            raise ValueError("Chat thread only supports 'system', 'user', and 'assistant' roles.")
 
+        # TODO Apply chat template formats or jinja templates and return prompt string.
+        # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
+        # This is clunky hacky but gets a minimal PoC going quick...
+        match format:
+            # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
+            case "ChatML":
+                raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+            # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+            case "Llama-3":
+                result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
 
     # chat threads must end by cueing the assistant to begin generation
     match format:
         case "ChatML":
             result += "<|im_start|>assistant\n"
         case "Llama-3":
-            result += "TODO"
+            result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
     return result
 
 
@@ -149,11 +135,10 @@ async def main() -> None:
     options = {"prompt": prompt}
     headers = {"User-Agent": "Mozilla/3.01Gold (X11; I; SunOS 5.5.1 sun4m)"}
 
-    print(prompt)
-    sys.exit(0)
     total = ""
     async for response in stream_response(base_url="http://localhost:8080", options=options, headers=headers):
         if response.get("stop", False):
+            print("")
             print(f">>> Timings:\n{response["timings"]}")
             print(f">>> Prompt:\n{response["prompt"]}")
             continue
