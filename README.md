@@ -26,7 +26,7 @@ pip install llama-cpp-api-client
     --port 8080
 ```
 
-# check out the examples
+#### Example Client App
 ```python
 import asyncio
 import sys
