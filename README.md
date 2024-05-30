@@ -8,7 +8,22 @@ LLaMA.cpp's HTTP Server via the API endpoints e.g. `/completion`.
 
 ## Quick Start
 ```bash
+# install this jawn
 pip install llama-cpp-api-client
+
+# spin up your LLaMA.cpp HTTP Server
+./server \
+    --model "../models/mradermacher/Smaug-Llama-3-70B-Instruct-abliterated-v3-i1-GGUF/Smaug-Llama-3-70B-Instruct-abliterated-v3.i1-IQ4_XS.gguf" \
+    --n-gpu-layers 44 \
+    --ctx-size 4096 \
+    --threads 24 \
+    --flash-attn \
+    --mlock \
+    --n-predict -1 \
+    --cache-type-k f16 \
+    --cache-type-v f16 \
+    --host 127.0.0.1 \
+    --port 8080
 ```
 
 ```python
@@ -21,8 +36,8 @@ While you could get up and running quickly using something like
 [openai-python](https://github.com/openai/openai-python) client, neither
 of those options seemed to provide enough flexibility regarding:
 
-* Full control of exact prompt templates.
-* Return correct tokens/second prompt and generation speed.
+* Full control of exact prompt templates e.g. ChatML, Llama-3, etc...
+* Return correct tokens/second speed for prompt and generation timings.
 * Likely more...
 
 Also, it seems like the built in LLaMA.cpp HTTP Server web app and

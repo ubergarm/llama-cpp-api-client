@@ -2,22 +2,49 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 
-import aiohttp
 from aiohttp import ClientSession
 
+# Default Address and Port of your LLaMA.cpp HTTP Server
+DEFAULT_BASE_URL = "http://localhost:8080"
 
-async def stream_response(base_url: str, data: dict) -> AsyncGenerator[dict, None]:
+# Default options for POST /completion API endpoint
+# https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md#api-endpoints
+DEFAULT_COMPLETION_OPTIONS = {
+    # Llama-3 style prompt template shown in this example
+    "prompt": f"<|start_header_id|>system<|end_header_id|>\n\nYou are a Zen master and mystical poet.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWrite a short haiku about llamas.<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
+    # ChatML style prompt template shown below
+    # "prompt": f"<|im_start|>system\nYou are a Zen master and mystical poet.\n<|im_end|>\n<|im_start|>user\nWrite a short haiku about llamas.\n<|im_end|>\n<|im_start|>assistant\n",
+    "temperature": 0.8,
+    "top_k": 40,
+    "top_p": 0.95,
+    "min_p": 0.05,
+    "repeat_penalty": 1.1,
+    "n_predict": -1,
+    "seed": -1,
+    "id_slot": -1,
+    "cache_prompt": False,
+    # Likely need to add more stop tokens below to support more model types.
+    "stop": ["<|eot_id|>", "<|im_end|>", "<|endoftext|>", "</s>"],
+    "stream": True,
+}
+
+# Default headers for HTTP POSTs/GETs
+DEFAULT_HEADERS = {
+    "User-Agent": "aiohttp",
+    "Content-Type": "application/json",
+    "Connection": "keep-alive",
+    "Accept": "text/event-stream",
+}
+
+
+async def stream_response(base_url: str = DEFAULT_BASE_URL, data: dict = {}) -> AsyncGenerator[dict, None]:
     """
     Stream llamma.cpp server /completion API full responses.
-          * try/catch/raise errors
+    TODO: try/catch/raise errors
     """
     async with ClientSession() as session:
-        headers = {}
-        headers.update({"User-Agent": "aiohttp"})
-        headers.update({"Content-Type": "application/json"})
-        if data["stream"] == True:
-            headers.update({"Connection": "keep-alive"})
-            headers.update({"Accept": "text/event-stream"})
+        headers = DEFAULT_HEADERS
+        data = DEFAULT_COMPLETION_OPTIONS
 
         url = f"{base_url.rstrip("/")}/completion"
         print(f"API Endpoint: {url}")
@@ -52,25 +79,11 @@ async def main() -> None:
     # >>> Llama-3-70B Prompt Template
     # "prompt": f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
 
-    base_url = "http://localhost:1234"
-    data = {
-        "prompt": f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
-        "temperature": 0.8,
-        "top_k": 45,
-        "top_p": 0.95,
-        "min_p": 0.05,
-        "repeat_penalty": 1.1,
-        "n_predict": 768,
-        "cache_prompt": False,
-        "stop": ["<|eot_id|>", "<|im_end|>", "<|endoftext|>", "</s>"],
-        "stream": True,
-    }
-
     complete = ""
-    async for response in stream_response(base_url=base_url, data=data):
+    async for response in stream_response():
         if response.get("stop", False):
-            print(response["timings"])
-            print(response["prompt"])
+            print(f">>> Timings:\n{response["timings"]}")
+            print(f">>> Prompt:\n{response["prompt"]}")
             continue
         complete += response["content"]
         print(response["content"])
