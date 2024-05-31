@@ -82,7 +82,7 @@ class LlamaCppAPIClient:
     def chat_to_prompt(self, chat_thread: list[dict], format: str) -> str:
         """Accepts a list of dicts in the OpenAI style chat thread and returns string with specified prompt template applied."""
 
-        SUPPORTED_FORMATS = ["ChatML", "Llama-3"]
+        SUPPORTED_FORMATS = ["ChatML", "Llama-3", "Raw"]
 
         # Initialize result as empty string
         result = ""
@@ -112,7 +112,7 @@ class LlamaCppAPIClient:
             match format:
                 # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
                 case "ChatML":
-                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+                    result += f"<|im_start|>{role}\n{content}\n<|im_end|>\n"
                 # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
                 case "Llama-3":
                     result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
