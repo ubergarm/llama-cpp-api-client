@@ -112,15 +112,20 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
         # This is clunky hacky but gets a minimal PoC going quick...
         match format:
             # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
+            # Do not prepend the BOS as that seems to cause hallucinations...
+            # llama_tokenize_internal: Added a BOS token to the prompt as specified by the model but the prompt also starts with a BOS token. So now the final prompt starts with 2 BOS tokens. Are you sure this is what you want?
             case "ChatML":
                 result += f"<|im_start|>{role}\n{content}\n<|im_end|>\n"
             # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+            # Unclear if need to prepend BOS to start: https://huggingface.co/meta-llama/Meta-Llama-3-8B/discussions/35 .. does not seem to hurt anything...
+            # Don't add BOS, llama.cpp server side is doing that: llama_tokenize_internal: Added a BOS token to the prompt as specified by the model but the prompt also starts with a BOS token. So now the final prompt starts with 2 BOS tokens. Are you sure this is what you want?
             case "Llama-3":
                 result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
             # Phi-3 might not support system prompt, but try anyway. "{{ bos_token }}{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + '<|end|>' }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
+            # skip prepending BOS for now, haven't tested as much as above but seems fine without it...
             case "Phi-3":
-                if result == "":
-                    result += "<s>\n"
+                # if result == "":
+                #     result += "<s>\n"
                 result += f"<|{role}|>\n{content}<|end|>\n"
             case "Raw":
             # just concatanate all content fields if userland wants to pass raw string
