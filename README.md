@@ -74,10 +74,12 @@ Also, it seems like the built in LLaMA.cpp HTTP Server web app and
 examples don't use the correct prompt template and stop tokens for many
 newer Open LLM models which can degrade results and over-generate outputs
 with the Assistant taking the User's turn or getting lots of `---` breaks.
+Though this may be improving for the [llama.cpp server webui improvement](https://www.reddit.com/r/LocalLLaMA/comments/1d3yxat/llamacpp_server_webui_improvement/)
 
 * [completion.js](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/public/completion.js#L5)
 * [chat.mjs](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/chat.mjs#L59)
 * [chat.sh](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/chat.sh#L52)
+
 
 So I wanted a minimalist way to interact with Open LLMs using all the
 benefits of LLaMA.cpp for inferencing on a single 3090TI with full
