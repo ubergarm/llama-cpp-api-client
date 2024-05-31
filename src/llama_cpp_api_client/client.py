@@ -1,7 +1,7 @@
 import asyncio
 import json
-from collections.abc import AsyncGenerator
 import sys
+from collections.abc import AsyncGenerator
 
 from aiohttp import ClientSession
 

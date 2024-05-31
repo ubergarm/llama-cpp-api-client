@@ -5,12 +5,11 @@ import json
 import sys
 
 from llama_cpp_api_client import LlamaCppAPIClient
-
 from rich import print
 from rich.console import Console
+from rich.layout import Layout
 from rich.markdown import Markdown
 from rich.syntax import Syntax
-from rich.layout import Layout
 
 
 async def main():

@@ -51,10 +51,9 @@ async def main():
     client = LlamaCppAPIClient()
 
     async for response in client.stream_completion(chat_thread):
-        if response.get("stop", False):
-            continue
-        print(response["content"], end="")
-        sys.stdout.flush()
+        if not response.get("stop", False):
+            print(response["content"], end="")
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":
