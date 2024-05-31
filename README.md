@@ -116,9 +116,9 @@ isort
 - [x] initial commit
 - [x] setup project to use as a library
 - [x] Streamng inferencing
-- [ ] Support ChatML and Llama-3 prompt formats
-- [ ] add usage example with "rich" markdown CLI client.
-- [ ] Possibly support additional API endpoints...
+- [x] Support ChatML, Llama-3, and Raw prompt template formats
+- [x] add usage example with "rich" markdown CLI client.
+- [ ] Possibly support additional API endpoints e.g. /health and /props etc...
 - [ ] publish to PyPI
 
 ## References
