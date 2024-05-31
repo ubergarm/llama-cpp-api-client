@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 
-from llama_cpp_api_client import chat_to_prompt, stream_response
+from llama_cpp_api_client import LlamaCppAPIClient
 
 from rich import print
 from rich.console import Console
@@ -22,13 +22,13 @@ async def main():
         {"role": "user", "content": user_prompt},
     ]
 
-    prompt = chat_to_prompt(chat_thread=chat_thread, format="Llama-3")
-    options = {"prompt": prompt}
     headers = {"User-Agent": "Mozilla/3.01Gold (X11; I; SunOS 5.5.1 sun4m)"}
+    options = {"n_predict": 128}
+    client = LlamaCppAPIClient(base_url="http://localhost:8080", headers=headers, options=options)
 
     total = ""
     try:
-        async for response in stream_response(base_url="http://localhost:8080", options=options, headers=headers):
+        async for response in client.stream_completion(chat_thread=chat_thread, format="Llama-3"):
             if response.get("stop", False):
                 print("\n>>> Timings")
                 timings = response["timings"]

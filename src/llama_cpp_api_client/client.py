@@ -53,7 +53,7 @@ class LlamaCppAPIClient:
         self.options = DEFAULT_COMPLETION_OPTIONS
         self.options.update(options)
 
-    async def stream_response(
+    async def stream_completion(
         self, chat_thread: list[dict] = [], format: str = "Llama-3"
     ) -> AsyncGenerator[dict, None]:
         """Stream LLaMA.cpp HTTP Server API POST /completion responses"""
@@ -147,7 +147,7 @@ async def main() -> None:
 
     total = ""
     try:
-        async for response in client.stream_response(chat_thread=chat_thread, format="Llama-3"):
+        async for response in client.stream_completion(chat_thread=chat_thread, format="Llama-3"):
             if response.get("stop", False):
                 print("")
                 print(f">>> Timings:\n{response["timings"]}")

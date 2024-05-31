@@ -3,7 +3,7 @@
 import asyncio
 import sys
 
-from llama_cpp_api_client import chat_to_prompt, stream_response
+from llama_cpp_api_client import LlamaCppAPIClient
 
 
 async def main():
@@ -15,10 +15,9 @@ async def main():
         {"role": "user", "content": user_prompt},
     ]
 
-    prompt = chat_to_prompt(chat_thread=chat_thread, format="Llama-3")
-    options = {"prompt": prompt}
+    client = LlamaCppAPIClient()
 
-    async for response in stream_response(base_url="http://localhost:8080", options=options):
+    async for response in client.stream_completion(chat_thread):
         if response.get("stop", False):
             continue
         print(response["content"], end="")
