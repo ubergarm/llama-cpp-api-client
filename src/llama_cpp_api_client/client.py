@@ -42,81 +42,88 @@ DEFAULT_COMPLETION_OPTIONS = {
 DEFAULT_RESPONSE_BODY_START_STRING = "data: ".encode("utf-8")
 
 
-async def stream_response(
-    base_url: str = DEFAULT_BASE_URL, options: dict = {}, headers: dict = {}
-) -> AsyncGenerator[dict, None]:
-    """Stream LLaMA.cpp HTTP Server API POST /completion responses"""
-    try:
-        async with ClientSession() as session:
-            # override defaults with whatever userland passes
-            combined_headers = DEFAULT_HEADERS
-            combined_headers.update(headers)
-            combined_options = DEFAULT_COMPLETION_OPTIONS
-            combined_options.update(options)
+class LlamaCppAPIClient:
+    """headers and options can be overriden at constructions time or per inference call"""
 
-            url = f"{base_url.rstrip("/")}/completion"
+    def __init__(self, base_url: str = DEFAULT_BASE_URL, headers: dict = {}, options: dict = {}):
+        # override defaults with whatever userland passes into constructor
+        self.base_url = base_url
+        self.headers = DEFAULT_HEADERS
+        self.headers.update(headers)
+        self.options = DEFAULT_COMPLETION_OPTIONS
+        self.options.update(options)
 
-            async with session.post(url=url, headers=combined_headers, json=combined_options) as response:
-                if not response.status == 200:
-                    raise Exception(f"HTTP Response: {response.status}")
-
-                async for raw_line in response.content:
-                    if len(raw_line) == 1:
-                        continue
-                    if raw_line[: len(DEFAULT_RESPONSE_BODY_START_STRING)] != DEFAULT_RESPONSE_BODY_START_STRING:
-                        # FIXME: this is brittle code, not sure if another json decoder and skip the "data: " part...
-                        raise Exception("Invalid response body starting string, unable to parse response...")
-                    line = raw_line.decode("utf-8")[len(DEFAULT_RESPONSE_BODY_START_STRING) :]
-                    yield json.loads(line)
-    except Exception as e:
-        raise e
-
-
-def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
-    """Accepts a list of dicts in the OpenAI style chat thread and returns string with specified prompt template applied."""
-
-    SUPPORTED_FORMATS = ["ChatML", "Llama-3"]
-
-    # Initialize result as empty string
-    result = ""
-
-    # Make sure the requested format is implemented
-    if format not in SUPPORTED_FORMATS:
-        raise NotImplementedError(f"{format} not in list of supported formats {SUPPORTED_FORMATS}")
-
-    # Check if the chat is not empty or only contains system/user roles
-    if len(chat_thread) == 0:
-        raise ValueError("Chat thread cannot be empty.")
-
-    for _, message in enumerate(chat_thread):
-        # Error check to ensure 'role' and 'content' keys exist in each dict
+    async def stream_response(self, headers: dict = {}, options: dict = {}) -> AsyncGenerator[dict, None]:
+        """Stream LLaMA.cpp HTTP Server API POST /completion responses"""
         try:
-            role = message["role"]
-            content = message["content"]
-        except KeyError as e:
-            raise ValueError(f"Each chat thread item must contain both 'role' and 'content' keys: {e}")
+            async with ClientSession() as session:
+                # override member values with whatever userland passes into function call
+                url = self.base_url.rstrip("/") + "/completion"
+                combined_headers = self.headers
+                combined_headers.update(headers)
+                combined_options = self.options
+                combined_options.update(options)
 
-        if role not in ["system", "user", "assistant"]:
-            raise ValueError("Chat thread only supports 'system', 'user', and 'assistant' roles.")
+                async with session.post(url=url, headers=combined_headers, json=combined_options) as response:
+                    if not response.status == 200:
+                        raise Exception(f"HTTP Response: {response.status}")
 
-        # TODO Apply chat template formats or jinja templates and return prompt string.
-        # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
-        # This is clunky hacky but gets a minimal PoC going quick...
+                    async for raw_line in response.content:
+                        if len(raw_line) == 1:
+                            continue
+                        if raw_line[: len(DEFAULT_RESPONSE_BODY_START_STRING)] != DEFAULT_RESPONSE_BODY_START_STRING:
+                            # FIXME: this is brittle code, not sure if another json decoder and skip the "data: " part...
+                            raise Exception("Invalid response body starting string, unable to parse response...")
+                        line = raw_line.decode("utf-8")[len(DEFAULT_RESPONSE_BODY_START_STRING) :]
+                        yield json.loads(line)
+        except Exception as e:
+            raise e
+
+    def chat_to_prompt(self, chat_thread: list[dict], format: str) -> str:
+        """Accepts a list of dicts in the OpenAI style chat thread and returns string with specified prompt template applied."""
+
+        SUPPORTED_FORMATS = ["ChatML", "Llama-3"]
+
+        # Initialize result as empty string
+        result = ""
+
+        # Make sure the requested format is implemented
+        if format not in SUPPORTED_FORMATS:
+            raise NotImplementedError(f"{format} not in list of supported formats {SUPPORTED_FORMATS}")
+
+        # Check if the chat is not empty or only contains system/user roles
+        if len(chat_thread) == 0:
+            raise ValueError("Chat thread cannot be empty.")
+
+        for _, message in enumerate(chat_thread):
+            # Error check to ensure 'role' and 'content' keys exist in each dict
+            try:
+                role = message["role"]
+                content = message["content"]
+            except KeyError as e:
+                raise ValueError(f"Each chat thread item must contain both 'role' and 'content' keys: {e}")
+
+            if role not in ["system", "user", "assistant"]:
+                raise ValueError("Chat thread only supports 'system', 'user', and 'assistant' roles.")
+
+            # TODO Apply chat template formats or jinja templates and return prompt string.
+            # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
+            # This is clunky hacky but gets a minimal PoC going quick...
+            match format:
+                # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
+                case "ChatML":
+                    raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
+                # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+                case "Llama-3":
+                    result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
+
+        # chat threads must end by cueing the assistant to begin generation
         match format:
-            # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
             case "ChatML":
-                raise ValueError("Chat Thread only supports 'system', 'user', and 'assistant' roles.")
-            # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+                result += "<|im_start|>assistant\n"
             case "Llama-3":
-                result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
-
-    # chat threads must end by cueing the assistant to begin generation
-    match format:
-        case "ChatML":
-            result += "<|im_start|>assistant\n"
-        case "Llama-3":
-            result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
-    return result
+                result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        return result
 
 
 async def main() -> None:
@@ -130,20 +137,25 @@ async def main() -> None:
         {"role": "user", "content": user_prompt},
     ]
 
-    prompt = chat_to_prompt(chat_thread=chat_thread, format="Llama-3")
+    client = LlamaCppAPIClient(base_url="http://localhost:8080")
+    prompt = client.chat_to_prompt(chat_thread=chat_thread, format="Llama-3")
     options = {"prompt": prompt}
     headers = {"User-Agent": "Mozilla/3.01Gold (X11; I; SunOS 5.5.1 sun4m)"}
 
     total = ""
-    async for response in stream_response(base_url="http://localhost:8080", options=options, headers=headers):
-        if response.get("stop", False):
-            print("")
-            print(f">>> Timings:\n{response["timings"]}")
-            print(f">>> Prompt:\n{response["prompt"]}")
-            continue
-        total += response["content"]
-        print(response["content"], end="")
-        sys.stdout.flush()
+    try:
+        async for response in client.stream_response(options=options, headers=headers):
+            if response.get("stop", False):
+                print("")
+                print(f">>> Timings:\n{response["timings"]}")
+                print(f">>> Prompt:\n{response["prompt"]}")
+                continue
+            total += response["content"]
+            print(response["content"], end="")
+            sys.stdout.flush()
+    except Exception as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
 
     print(f">>> Response:\n{total}")
 
