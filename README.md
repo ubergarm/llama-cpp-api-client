@@ -11,7 +11,11 @@ LLaMA.cpp's HTTP Server via the API endpoints e.g. `/completion`.
 # install this jawn
 pip install llama-cpp-api-client
 
-# spin up your LLaMA.cpp HTTP Server
+# install from github (until it becomes available on PyPI)
+pip install git+https://github.com/ubergarm/llama-cpp-api-client
+
+# spin up your local LLaMA.cpp HTTP Server
+# 3090TI 24GB VRAM inferences this setup over 4 tokens/second
 ./server \
     --model "../models/mradermacher/Smaug-Llama-3-70B-Instruct-abliterated-v3-i1-GGUF/Smaug-Llama-3-70B-Instruct-abliterated-v3.i1-IQ4_XS.gguf" \
     --n-gpu-layers 44 \
@@ -94,9 +98,6 @@ pip install --upgrade -r requirements-dev.txt
 # install package
 pip install .
 pip show -f llama_cpp_api_client
-
-# install from github
-pip install git+https://github.com/ubergarm/llama-cpp-api-client
 
 # testing
 pip install .[dev]
