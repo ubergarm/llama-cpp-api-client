@@ -86,6 +86,8 @@ class LlamaCppAPIClient:
 
 def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
     """Accepts a list of dicts in the OpenAI style chat thread and returns string with specified prompt template applied."""
+    # There must be a better way to do this e.g.
+    # https://github.com/ggerganov/llama.cpp/commit/8768b4f5ea1de69a4cace0481fdba70d89a47e47
 
     # Initialize result as empty string
     result = ""
