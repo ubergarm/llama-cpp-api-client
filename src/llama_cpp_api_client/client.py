@@ -33,7 +33,7 @@ DEFAULT_COMPLETION_OPTIONS = {
     "id_slot": -1,
     "cache_prompt": False,
     # Likely need to add more stop tokens below to support more model types.
-    "stop": ["<|eot_id|>", "<|im_end|>", "<|endoftext|>", "</s>"],
+    "stop": ["<|eot_id|>", "<|im_end|>", "<|endoftext|>", "<|end|>", "</s>"],
     "stream": True,
 }
 
@@ -117,11 +117,16 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             # template["Llama-3"] =  f"<|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
             case "Llama-3":
                 result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
+            # Phi-3 might not support system prompt, but try anyway. "{{ bos_token }}{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + '<|end|>' }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
+            case "Phi-3":
+                if result == "":
+                    result += "<s>\n"
+                result += f"<|{role}|>\n{content}<|end|>\n"
             case "Raw":
             # just concatanate all content fields if userland wants to pass raw string
                 result += f"{content}"
             case _:
-                raise NotImplementedError(f"{format} not in list of supported formats e.g. ChatML, Llama-3, Raw...")
+                raise NotImplementedError(f"{format} not in list of supported formats e.g. ChatML, Llama-3, Phi-3, Raw...")
 
     # chat threads must end by cueing the assistant to begin generation
     match format:
@@ -129,6 +134,8 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             result += "<|im_start|>assistant\n"
         case "Llama-3":
             result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        case "Phi-3":
+            result += "<|assistant|>\n"
     return result
 
 

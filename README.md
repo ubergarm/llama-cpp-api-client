@@ -8,11 +8,11 @@ LLaMA.cpp's HTTP Server via the API endpoints e.g. `/completion`.
 
 ## Quick Start
 ```bash
-# install this jawn
-pip install llama-cpp-api-client
-
-# install from github (until it becomes available on PyPI)
+# install from github
 pip install git+https://github.com/ubergarm/llama-cpp-api-client
+
+# install this jawn (if I actually publish it to PyPI...)
+pip install llama-cpp-api-client
 
 # spin up your local LLaMA.cpp HTTP Server
 # 3090TI 24GB VRAM inferences this setup over 4 tokens/second
@@ -118,10 +118,10 @@ isort
 - [x] initial commit
 - [x] setup project to use as a library
 - [x] Streamng inferencing
-- [x] Support ChatML, Llama-3, and Raw prompt template formats
+- [x] Support ChatML, Llama-3, Phi-3, and Raw prompt template formats and stop tokens
 - [x] add usage example with "rich" markdown CLI client.
 - [ ] Possibly support additional API endpoints e.g. /health and /props etc...
-- [ ] publish to PyPI
+- [ ] publish to PyPI if there isn't a better alternative yet
 
 ## References
 * [LLaMA.cpp HTTP Server Docs](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md)
