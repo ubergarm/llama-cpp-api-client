@@ -109,6 +109,7 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
 
         # TODO Apply chat template formats or jinja templates and return prompt string.
         # Could use jinja templates e.g. https://github.com/vllm-project/vllm/blob/main/examples/template_chatml.jinja
+        # `u/Evening_Ad6637` is amazing: https://github.com/mounta11n/plusplus-camall/blob/plusplus/examples/server/public/prompt-formats.js
         # This is clunky hacky but gets a minimal PoC going quick...
         match format:
             # template["ChatML"] = f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
@@ -121,12 +122,23 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             # Don't add BOS, llama.cpp server side is doing that: llama_tokenize_internal: Added a BOS token to the prompt as specified by the model but the prompt also starts with a BOS token. So now the final prompt starts with 2 BOS tokens. Are you sure this is what you want?
             case "Llama-3":
                 result += f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
-            # Phi-3 might not support system prompt, but try anyway. "{{ bos_token }}{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + '<|end|>' }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
+            # Phi-3 does not technically support a system prompt so could raise an error or fudge it in anyway e.g. "{{ bos_token }}{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + '<|end|>' }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + '<|end|>' }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
+            # https://huggingface.co/microsoft/Phi-3-mini-4k-instruct#chat-format
             # skip prepending BOS for now, haven't tested as much as above but seems fine without it...
             case "Phi-3":
                 # if result == "":
                 #     result += "<s>\n"
                 result += f"<|{role}|>\n{content}<|end|>\n"
+                if role == "system":
+                    raise NotImplementedError(f"{format} models do not support {role} prompts. Please remove and try again.")
+            case "Gemma2":
+                # no system prompt here either
+                # <start_of_turn>user
+                # {prompt}<end_of_turn>
+                # <start_of_turn>model
+                result += f"<start_of_turn>{role}\n{content}<end_of_turn>\n"
+                if role == "system":
+                    raise NotImplementedError(f"{format} models do not support {role} prompts. Please remove and try again.")
             case "Raw":
             # just concatanate all content fields if userland wants to pass raw string
                 result += f"{content}"
@@ -141,6 +153,8 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
         case "Phi-3":
             result += "<|assistant|>\n"
+        case "Gemma2":
+            result += "<start_of_turn>model\n"
     return result
 
 
