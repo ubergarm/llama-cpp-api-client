@@ -139,6 +139,13 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
                 result += f"<start_of_turn>{role}\n{content}<end_of_turn>\n"
                 if role == "system":
                     raise NotImplementedError(f"{format} models do not support {role} prompts. Please remove and try again.")
+            case "Mixtral":
+                # NOTE: the spaces before strings are important. Seems like system prompt is folded into first user prompt.
+                # NOTE2: no need to add the <s> BOS token as llamma.cpp server does that automatically
+                # <s>[INST] You are a helpful assistant\nHello [/INST]Hi there</s>[INST] How are you? [/INST]
+                result += f"[INST] {content}"
+                if role == "system":
+                    raise NotImplementedError(f"{format} models {role} prompt not yet implemented. Fold it into your first user prompt followed by \\n")
             case "Raw":
             # just concatanate all content fields if userland wants to pass raw string
                 result += f"{content}"
@@ -153,6 +160,8 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             result += "<|start_header_id|>assistant<|end_header_id|>\n\n"
         case "Phi-3":
             result += "<|assistant|>\n"
+        case "Mixtral":
+            result += " [/INST]" # extra white space is on purpose
         case "Gemma2":
             result += "<start_of_turn>model\n"
     return result
@@ -178,8 +187,8 @@ async def main() -> None:
         async for response in client.stream_completion(chat_thread=chat_thread, format="Llama-3"):
             if response.get("stop", False):
                 print("")
-                print(f">>> Timings:\n{response["timings"]}")
-                print(f">>> Prompt:\n{response["prompt"]}")
+                # print(f">>> Timings:\n{response["timings"]}")
+                # print(f">>> Prompt:\n{response["prompt"]}")
                 continue
             total += response["content"]
             print(response["content"], end="")
