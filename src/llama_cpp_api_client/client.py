@@ -33,7 +33,7 @@ DEFAULT_COMPLETION_OPTIONS = {
     "id_slot": -1,
     "cache_prompt": False,
     # Likely need to add more stop tokens below to support more model types.
-    "stop": ["<|eot_id|>", "<|im_end|>", "<|endoftext|>", "<|end|>", "</s>"],
+    "stop": ["<|eot_id|>", "<|eom_id|>", "<|im_end|>", "<|end_of_text|>"," <|endoftext|>", "<|end|>", "</s>"],
     "stream": True,
 }
 
