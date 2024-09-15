@@ -23,17 +23,17 @@ DEFAULT_COMPLETION_OPTIONS = {
     "prompt": f"<|start_header_id|>system<|end_header_id|>\n\nYou are a Zen master and mystical poet.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWrite a short haiku about llamas.<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
     # ChatML style prompt template shown below
     # "prompt": f"<|im_start|>system\nYou are a Zen master and mystical poet.\n<|im_end|>\n<|im_start|>user\nWrite a short haiku about llamas.\n<|im_end|>\n<|im_start|>assistant\n",
-    "temperature": 0.8,
+    "temperature": 0.2,
     "top_k": 40,
     "top_p": 0.95,
     "min_p": 0.05,
-    "repeat_penalty": 1.1,
+    "repeat_penalty": 1.0,
     "n_predict": -1,
     "seed": -1,
     "id_slot": -1,
     "cache_prompt": False,
     # Likely need to add more stop tokens below to support more model types.
-    "stop": ["<|eot_id|>", "<|eom_id|>", "<|im_end|>", "<|end_of_text|>"," <|endoftext|>", "<|end|>", "</s>"],
+    "stop": ["<|eot_id|>", "<|eom_id|>", "<|im_end|>", "<|end_of_text|>"," <|endoftext|>", "<|end|>", "</s>", "<｜end▁of▁sentence｜>"],
     "stream": True,
 }
 
@@ -146,6 +146,15 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
                 result += f"[INST] {content}"
                 if role == "system":
                     raise NotImplementedError(f"{format} models {role} prompt not yet implemented. Fold it into your first user prompt followed by \\n")
+            case "Deepseek":
+                # <｜begin▁of▁sentence｜>{system_message}<｜User｜>{user_message_1}<｜Assistant｜>{assistant_message_1}<｜end▁of▁sentence｜><｜User｜>{user_message_2}<｜Assistant｜>
+                if role == "system":
+                    # NOTE: llama.cpp@3c7989fd is complaining about adding the BOS twice, but it is currently falling back to to ChatML so leave it explicit here...
+                    result += f"<｜begin▁of▁sentence｜>{content}"
+                if role == "user":
+                    result+= f"<｜User｜>{content}"
+                if role == "assistant":
+                    result+= f"<｜Assistant｜>{content}"
             case "Raw":
             # just concatanate all content fields if userland wants to pass raw string
                 result += f"{content}"
@@ -164,6 +173,8 @@ def chat_to_prompt(chat_thread: list[dict], format: str) -> str:
             result += " [/INST]" # extra white space is on purpose
         case "Gemma2":
             result += "<start_of_turn>model\n"
+        case "Deepseek":
+            result += "<｜Assistant｜>"
     return result
 
 
